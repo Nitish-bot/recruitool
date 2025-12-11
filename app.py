@@ -1,10 +1,61 @@
-from google import genai
 import requests
 import streamlit as st
 import pandas as pd
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+def scrape_linkedin_profile(profile_urls):
+    token = st.secrets.get("BEARER_TOKEN")
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    json = {
+        "input": [{"url": url} for url in profile_urls]
+    }
+
+    try:
+        response = requests.post(
+            "https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_l1viktl72bvl7bjuj0&include_errors=true",
+            headers=headers,
+            json=json
+        )
+        
+        if response.status_code == 200:
+            return {"status": "complete", "data": response.json()}
+            
+        elif "snapshot_id" in response.json():
+            snapshot_id = response.json()['snapshot_id']
+            return {"status": "pending", "id": snapshot_id}
+            
+        else:
+            st.error(f"Error {response.status_code}: {response.text}")
+            return None
+
+    except Exception as e:
+        st.error(f"Request failed: {e}")
+        return None
+
+def poll_snapshot(snapshot_id):
+    """Checks if the data is ready for a specific snapshot ID"""
+    token = st.secrets.get("BEARER_TOKEN")
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Bright Data URL to fetch specific snapshot data
+    # NOTE: Verify this endpoint in your Bright Data dashboard, it usually looks like this:
+    url = f"https://api.brightdata.com/datasets/v3/snapshot/{snapshot_id}?format=json"
+    
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        # Check if response is "Processing" or actual data
+        data = response.json()
+        if isinstance(data, dict) and data.get('status') == 'running':
+             return {"status": "pending"}
+        return {"status": "complete", "data": data}
+    elif response.status_code == 202:
+        return {"status": "pending"}
+    else:
+        st.error(f"Polling Error: {response.text}")
+        return {"status": "error"}
+    
 def scrape_linkedin_profile(profile_urls):
     token = st.secrets.get("BEARER_TOKEN")
     headers = {
