@@ -163,7 +163,7 @@ if 'df' in st.session_state:
     st.subheader("Chat with the Candidates")
 
     # Initialize LLM Agent
-    llm = ChatGoogleGenerativeAI(google_api_key=gemini_key, model="gemini-2.5-flash")
+    llm = ChatGoogleGenerativeAI(google_api_key=gemini_key, model="gemini-2.5-flash-lite")
     agent = create_pandas_dataframe_agent(
         llm, 
         df,
