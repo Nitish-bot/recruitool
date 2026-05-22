@@ -10,3 +10,6 @@ wheels/
 .venv
 .env
 .streamlit
+debug_logs/
+.sisyphus
+.playwright-mcp
